@@ -1,0 +1,17 @@
+{
+  "CN": "Worqu Test signer",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "CA": {
+    "expiry":"2000000h"
+  },
+  "names": [
+    {
+      "C": "SE",
+      "L": "Somewhere",
+      "O": "tobgu CA"
+    }
+  ]
+}

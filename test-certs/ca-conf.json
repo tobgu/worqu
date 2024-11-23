@@ -1,0 +1,13 @@
+{
+    "signing": {
+        "default": {
+            "usages": [
+                "digital signature",
+                "key encipherment",
+                "server auth",
+                "client auth"
+            ],
+            "expiry": "2000000h"
+        }
+    }
+}

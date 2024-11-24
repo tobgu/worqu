@@ -37,6 +37,9 @@ var etcdConfig = etcdq.Config{
 	EtcdHosts:          "localhost:2379",
 	MaxTaskConcurrency: 5,
 	EtcdTimeoutSeconds: 5,
+	TLSCertFile:        "../test-certs/cert.pem",
+	TLSKeyFile:         "../test-certs/key.pem",
+	TLSCACertFile:      "../test-certs/ca.pem",
 }
 
 func newTestQueue(t *testing.T) (*etcdq.Queue[TestData], func()) {

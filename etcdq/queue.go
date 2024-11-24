@@ -75,7 +75,7 @@ func (q *Queue[T]) liveTasksPrefix() string {
 }
 
 func (q *Queue[T]) liveTasksKey(id tasks.TaskID) string {
-	return fmt.Sprintf(q.liveTasksPrefix() + string(id))
+	return q.liveTasksPrefix() + string(id)
 }
 
 func (q *Queue[T]) cancelRequestPrefix() string {
@@ -83,7 +83,7 @@ func (q *Queue[T]) cancelRequestPrefix() string {
 }
 
 func (q *Queue[T]) cancelRequestKey(id tasks.TaskID) string {
-	return fmt.Sprintf(q.cancelRequestPrefix() + string(id))
+	return q.cancelRequestPrefix() + string(id)
 }
 
 func (q *Queue[T]) processingLockPrefix() string {
@@ -91,7 +91,7 @@ func (q *Queue[T]) processingLockPrefix() string {
 }
 
 func (q *Queue[T]) processingLockKey(id tasks.TaskID) string {
-	return fmt.Sprintf(q.processingLockPrefix() + string(id))
+	return q.processingLockPrefix() + string(id)
 }
 
 func (q *Queue[T]) finishedTasksPrefix() string {
@@ -99,7 +99,7 @@ func (q *Queue[T]) finishedTasksPrefix() string {
 }
 
 func (q *Queue[T]) finishedTasksKey(id tasks.TaskID) string {
-	return fmt.Sprintf(q.finishedTasksPrefix() + string(id))
+	return q.finishedTasksPrefix() + string(id)
 }
 
 // AddTask adds a new task containing data to the queue.

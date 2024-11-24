@@ -6,7 +6,6 @@ import (
 	"fmt"
 	etcdlogutil "go.etcd.io/etcd/client/pkg/v3/logutil"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"google.golang.org/grpc"
 	"os"
 	"strings"
 	"time"
@@ -47,7 +46,6 @@ func NewClient(c Config) (*clientv3.Client, error) {
 	hosts := strings.Split(c.EtcdHosts, ",")
 	etcdlogutil.DefaultZapLoggerConfig.Encoding = "console" // Default is json, keep all other settings
 	client, err := clientv3.New(clientv3.Config{
-		DialOptions: []grpc.DialOption{grpc.WithBlock()},
 		Endpoints:   hosts,
 		DialTimeout: time.Duration(c.EtcdTimeoutSeconds) * time.Second,
 		TLS:         tlsConfig,

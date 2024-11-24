@@ -53,7 +53,7 @@ func newTestQueue(t *testing.T) (*etcdq.Queue[TestData], func()) {
 	}
 }
 
-func TestQueueBasicInsertGetFinishScenario(t *testing.T) {
+func TestQueue_BasicInsertGetFinishScenario(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -97,7 +97,7 @@ func TestQueueBasicInsertGetFinishScenario(t *testing.T) {
 	assert.NotEmpty(t, tt[0].FinishedTS)
 }
 
-func TestQueueTasksPutOnQueueAfterConsumerStarted(t *testing.T) {
+func TestQueue_TasksPutOnQueueAfterConsumerStarted(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -122,7 +122,7 @@ func TestQueueTasksPutOnQueueAfterConsumerStarted(t *testing.T) {
 	assert.NotEmpty(t, tt[0].StartedTS)
 }
 
-func TestQueueMultipleConsumersAndProducers(t *testing.T) {
+func TestQueue_MultipleConsumersAndProducers(t *testing.T) {
 	// Setup: 1 producer of 10 tasks -> 10 consumers -> 10 producers -> 1 consumer of 10 tasks
 	// Verify that all tasks are processed
 	consumerCount := 10
@@ -192,7 +192,7 @@ func TestQueueMultipleConsumersAndProducers(t *testing.T) {
 	assert.Len(t, outputSet, consumerCount)
 }
 
-func TestQueueConsumersNotFinishingTasksEventuallyCauseClaimingOfNewTasksToFail(t *testing.T) {
+func TestQueue_ConsumersNotFinishingTasksEventuallyCauseClaimingOfNewTasksToFail(t *testing.T) {
 	// This is a safeguard to find misbehaving consumers that would otherwise
 	// start filling up the queue.
 	q, shutdownFn := newTestQueue(t)
@@ -213,7 +213,7 @@ func TestQueueConsumersNotFinishingTasksEventuallyCauseClaimingOfNewTasksToFail(
 	assert.Contains(t, err.Error(), "too many processing tasks detected")
 }
 
-func TestQueueTasksConsumedInInsertOrder(t *testing.T) {
+func TestQueue_TasksConsumedInInsertOrder(t *testing.T) {
 	// This is a safeguard to find misbehaving consumers that would otherwise
 	// start filling up the queue.
 	q, shutdownFn := newTestQueue(t)
@@ -234,7 +234,7 @@ func TestQueueTasksConsumedInInsertOrder(t *testing.T) {
 	}
 }
 
-func TestQueueCancelNotYetStartedTask(t *testing.T) {
+func TestQueue_CancelNotYetStartedTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -255,7 +255,7 @@ func TestQueueCancelNotYetStartedTask(t *testing.T) {
 	assert.Equal(t, tasks.TaskStatusCancelled, tt[0].Status)
 }
 
-func TestQueueCancelProcessingTaskClaimedByScan(t *testing.T) {
+func TestQueue_CancelProcessingTaskClaimedByScan(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -293,7 +293,7 @@ func TestQueueCancelProcessingTaskClaimedByScan(t *testing.T) {
 	assert.Equal(t, tasks.TaskStatusCancelled, tt[0].Status)
 }
 
-func TestQueueCancelProcessingTaskClaimedByWatch(t *testing.T) {
+func TestQueue_CancelProcessingTaskClaimedByWatch(t *testing.T) {
 	// The expected behaviour in this test case is the same as
 	// for TestQueueCancelProcessingTaskClaimedByScan but the code
 	// paths are slightly different for which may introduce unwanted
@@ -333,7 +333,7 @@ func TestQueueCancelProcessingTaskClaimedByWatch(t *testing.T) {
 	assert.Equal(t, tasks.TaskStatusCancelled, tt[0].Status)
 }
 
-func TestQueueCannotFinishTasksThatAreNotClaimedByClient(t *testing.T) {
+func TestQueue_CannotFinishTasksThatAreNotClaimedByClient(t *testing.T) {
 	q1, shutdownFn1 := newTestQueue(t)
 	defer shutdownFn1()
 	q2, shutdownFn2 := newTestQueue(t)
@@ -351,7 +351,7 @@ func TestQueueCannotFinishTasksThatAreNotClaimedByClient(t *testing.T) {
 	assert.Contains(t, err.Error(), "not owned by us")
 }
 
-func TestQueueTaskWithNoLockCanBeReclaimed(t *testing.T) {
+func TestQueue_TaskWithNoLockCanBeReclaimed(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -418,7 +418,7 @@ func TestReQueueingFinishedTask(t *testing.T) {
 	assert.Equal(t, newTask.ID, claimedTask.ID)
 }
 
-func TestQueueCancelClaimNextTask(t *testing.T) {
+func TestQueue_CancelClaimNextTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -437,7 +437,7 @@ func TestQueueCancelClaimNextTask(t *testing.T) {
 	<-coordinationChan
 }
 
-func TestQueueCancelBeforeClaimNextTask(t *testing.T) {
+func TestQueue_CancelBeforeClaimNextTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -454,7 +454,7 @@ func TestQueueCancelBeforeClaimNextTask(t *testing.T) {
 	assert.Nil(t, task)
 }
 
-func TestQueueGetLiveTask(t *testing.T) {
+func TestQueue_GetLiveTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -466,7 +466,7 @@ func TestQueueGetLiveTask(t *testing.T) {
 	assert.Equal(t, id, task.ID)
 }
 
-func TestQueueGetFinishedTask(t *testing.T) {
+func TestQueue_GetFinishedTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -485,7 +485,7 @@ func TestQueueGetFinishedTask(t *testing.T) {
 	assert.Equal(t, tasks.TaskStatusErrored, task.Status)
 }
 
-func TestQueueTryGetMissingTask(t *testing.T) {
+func TestQueue_TryGetMissingTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
@@ -493,7 +493,7 @@ func TestQueueTryGetMissingTask(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestQueueCancelFinishedTaskReturnsTaskNotFound(t *testing.T) {
+func TestQueue_CancelFinishedTaskReturnsTaskNotFound(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 

@@ -36,6 +36,6 @@ install-linter:
 	fi
 
 etcd-up:
-	docker compose up -d
+	docker compose up -d --wait --wait-timeout 30
 
-ci: lint test
+ci: etcd-up lint test

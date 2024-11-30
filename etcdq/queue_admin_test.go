@@ -86,7 +86,7 @@ func TestQueueAdmin_ReQueueTask(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, taskID, newTaskID)
 
-	// Verify new task is requeued
+	// Verify new task is re-queued
 	liveTasks, err := qa.ListLiveTasks("test-queue")
 	assert.NoError(t, err)
 	assert.Len(t, liveTasks, 1)

@@ -20,7 +20,7 @@ func (q *Queue[T]) SetRepollInterval(interval time.Duration) {
 func (q *Queue[T]) Clear() (int64, error) {
 	resp, err := q.kv.Delete(context.Background(), q.prefix+"/", clientv3.WithPrefix())
 	if err != nil {
-		return resp.Deleted, fmt.Errorf("clearing queue: %w", err)
+		return 0, fmt.Errorf("clearing queue: %w", err)
 	}
 	return resp.Deleted, nil
 }

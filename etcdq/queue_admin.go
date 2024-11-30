@@ -60,6 +60,6 @@ func (qa QueueAdmin) shutdown(q *Queue[any]) {
 	// Explicitly ignore errors from shutdown to satisfy linter
 	err := q.Shutdown()
 	if err != nil {
-		qa.logger.Error("Error shutting down queue in QueueAdmin: %v", err)
+		qa.logger.Error("shutting down queue in QueueAdmin: %v", err)
 	}
 }

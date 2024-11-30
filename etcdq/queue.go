@@ -111,7 +111,7 @@ func (q *Queue[T]) AddTask(data T) (tasks.TaskID, error) {
 	}
 	taskBytes, err := task.Marshal()
 	if err != nil {
-		return "", fmt.Errorf("error marshalling data: %w", err)
+		return "", fmt.Errorf("marshalling data: %w", err)
 	}
 
 	taskID := tasks.NewTaskID()
@@ -272,7 +272,7 @@ func (q *Queue[T]) claimNextTask(ctx context.Context) (*tasks.ClaimedTask[T], er
 		select {
 		case w := <-watchChan:
 			if w.Err() != nil {
-				return nil, fmt.Errorf("error watching for new tasks, canceled = %t: %w", w.Canceled, err)
+				return nil, fmt.Errorf("watching for new tasks, canceled = %t: %w", w.Canceled, err)
 			}
 
 			if len(w.Events) == 0 {
@@ -314,7 +314,7 @@ func (q *Queue[T]) ListLiveTasks() ([]tasks.Task[T], error) {
 	for i, kv := range resp.Kvs {
 		task, err := tasks.UnMarshalTask[T](kv.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error unmarshalling task with key %s: %w", string(kv.Key), err)
+			return nil, fmt.Errorf("unmarshalling task with key %s: %w", string(kv.Key), err)
 		}
 		task.ID = tasks.TaskIDFromKey(string(kv.Key))
 		result[i] = task
@@ -342,7 +342,7 @@ func (q *Queue[T]) ListFinishedTasks(limit int64) ([]tasks.Task[T], error) {
 		task, err := tasks.UnMarshalTask[T](kv.Value)
 		task.ID = tasks.TaskIDFromKey(string(kv.Key))
 		if err != nil {
-			return nil, fmt.Errorf("error unmarshalling finished task with key %s: %w", string(kv.Key), err)
+			return nil, fmt.Errorf("unmarshalling finished task with key %s: %w", string(kv.Key), err)
 		}
 		result[len(result)-i-1] = task
 	}
@@ -358,7 +358,7 @@ func (q *Queue[T]) Len() (int, error) {
 		clientv3.WithPrefix(),
 		clientv3.WithCountOnly())
 	if err != nil {
-		return int(resp.Count), fmt.Errorf("error getting queue length: %w", err)
+		return 0, fmt.Errorf("getting queue length: %w", err)
 	}
 	return int(resp.Count), nil
 }
@@ -413,7 +413,7 @@ func (q *Queue[T]) ReQueueTask(id tasks.TaskID) (*tasks.Task[T], error) {
 func (q *Queue[T]) getTask(etcdKey string) (*tasks.Task[T], error) {
 	resp, err := q.kv.Get(context.Background(), etcdKey)
 	if err != nil {
-		return nil, fmt.Errorf("error getting task for key %s: %w", etcdKey, err)
+		return nil, fmt.Errorf("getting task for key %s: %w", etcdKey, err)
 	}
 
 	if resp.Count != 1 {
@@ -422,7 +422,7 @@ func (q *Queue[T]) getTask(etcdKey string) (*tasks.Task[T], error) {
 
 	task, err := tasks.UnMarshalTask[T](resp.Kvs[0].Value)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling task for key %s: %w", etcdKey, err)
+		return nil, fmt.Errorf("unmarshalling task for key %s: %w", etcdKey, err)
 	}
 
 	task.ID = tasks.TaskIDFromKey(etcdKey)
@@ -517,7 +517,7 @@ func (q *Queue[T]) CancelTask(id tasks.TaskID) error {
 	cancelKey := q.cancelRequestKey(id)
 	_, err = q.kv.Put(context.Background(), cancelKey, q.leaseIDString)
 	if err != nil {
-		return fmt.Errorf("error making cancel request: %w", err)
+		return fmt.Errorf("making cancel request: %w", err)
 	}
 
 	return nil

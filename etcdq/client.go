@@ -52,7 +52,7 @@ func NewClient(c Config) (*clientv3.Client, error) {
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("error connecting to ETCD hosts %w", err)
+		return nil, fmt.Errorf("connecting to ETCD hosts %w", err)
 	}
 
 	return client, nil

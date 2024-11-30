@@ -18,10 +18,9 @@ func TestQueueAdmin_CancelTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	taskID, err := q.AddTask(TestData{Content: "TestCancelTask"})
-	assert.NoError(t, err)
+	taskID := addTask(t, q, TestData{Content: "TestCancelTask"})
 
-	err = qa.CancelTask("test-queue", taskID)
+	err := qa.CancelTask("test-queue", taskID)
 	assert.NoError(t, err)
 
 	// Verify task was canceled
@@ -37,8 +36,7 @@ func TestQueueAdmin_ListFinishedTasks(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	taskID, err := q.AddTask(TestData{Content: "TestListFinishedTask"})
-	assert.NoError(t, err)
+	taskID := addTask(t, q, TestData{Content: "TestListFinishedTask"})
 
 	// Finish task to mark it as finished
 	task, err := q.ClaimNextTask(context.Background())
@@ -58,8 +56,7 @@ func TestQueueAdmin_ListLiveTasks(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	taskID, err := q.AddTask(TestData{Content: "TestListLiveTask"})
-	assert.NoError(t, err)
+	taskID := addTask(t, q, TestData{Content: "TestListLiveTask"})
 
 	liveTasks, err := qa.ListLiveTasks("test-queue")
 	assert.NoError(t, err)
@@ -73,8 +70,7 @@ func TestQueueAdmin_ReQueueTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	taskID, err := q.AddTask(TestData{Content: "TestReQueueTask"})
-	assert.NoError(t, err)
+	taskID := addTask(t, q, TestData{Content: "TestReQueueTask"})
 
 	// Finish task to mark it as errored
 	task, err := q.ClaimNextTask(context.Background())

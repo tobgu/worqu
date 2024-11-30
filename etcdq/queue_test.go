@@ -11,55 +11,12 @@ import (
 	"time"
 )
 
-type TestLogger struct{}
-
-func (t TestLogger) Debug(format string, v ...any) {
-	t.Info(format, v...)
-}
-
-func (t TestLogger) Info(format string, v ...any) {
-	fmt.Printf(format, v...)
-}
-
-func (t TestLogger) Warn(format string, v ...any) {
-	t.Info(format, v...)
-}
-
-func (t TestLogger) Error(format string, v ...any) {
-	t.Info(format, v...)
-}
-
-type TestData struct {
-	Content string
-}
-
-var etcdConfig = etcdq.Config{
-	EtcdHosts:          "localhost:2379",
-	MaxTaskConcurrency: 5,
-	EtcdTimeoutSeconds: 5,
-	TLSCertFile:        "../test-certs/cert.pem",
-	TLSKeyFile:         "../test-certs/key.pem",
-	TLSCACertFile:      "../test-certs/ca.pem",
-}
-
-func newTestQueue(t *testing.T) (*etcdq.Queue[TestData], func()) {
-	t.Helper()
-	q, err := etcdq.NewQueue[TestData]("test-queue", etcdConfig, TestLogger{})
-	assert.NoError(t, err)
-	_, err = q.Clear()
-	assert.NoError(t, err)
-	return q, func() {
-		assert.NoError(t, q.Shutdown())
-	}
-}
-
 func TestQueue_BasicInsertGetFinishScenario(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
 	testData := TestData{Content: "Hello"}
-	newTaskID, err := q.AddTask(testData)
-	assert.NoError(t, err)
+	newTaskID := addTask(t, q, testData)
 
 	l, err := q.Len()
 	assert.NoError(t, err)
@@ -112,8 +69,7 @@ func TestQueue_TasksPutOnQueueAfterConsumerStarted(t *testing.T) {
 	}()
 	<-coordinationChan
 	time.Sleep(100 * time.Millisecond)
-	_, err := q.AddTask(testData)
-	assert.NoError(t, err)
+	addTask(t, q, testData)
 	<-coordinationChan
 	tt, err := q.ListLiveTasks()
 	assert.NoError(t, err)
@@ -160,8 +116,7 @@ func TestQueue_MultipleConsumersAndProducers(t *testing.T) {
 			assert.NoError(t, err)
 
 			task.Data.Content = fmt.Sprintf("%d - %s", id, task.Data.Content)
-			_, err = outputQueueInstances[id].AddTask(task.Data)
-			assert.NoError(t, err)
+			addTask(t, outputQueueInstances[id], task.Data)
 
 			err = inputQueueInstances[id].FinishTask(task, tasks.TaskStatusSuccess)
 			assert.NoError(t, err)
@@ -171,8 +126,7 @@ func TestQueue_MultipleConsumersAndProducers(t *testing.T) {
 	// 1 producer of input
 	t0 := time.Now()
 	for i := 0; i < consumerCount; i++ {
-		_, err := inputQueueInstances[0].AddTask(TestData{Content: fmt.Sprintf("%d", i)})
-		assert.NoError(t, err)
+		addTask(t, inputQueueInstances[0], TestData{Content: fmt.Sprintf("%d", i)})
 	}
 	println("produce input:", time.Since(t0).Milliseconds(), "ms")
 
@@ -200,8 +154,7 @@ func TestQueue_ConsumersNotFinishingTasksEventuallyCauseClaimingOfNewTasksToFail
 
 	taskCount := 30
 	for i := 0; i < taskCount; i++ {
-		_, err := q.AddTask(TestData{Content: fmt.Sprintf("%d", i)})
-		assert.NoError(t, err)
+		addTask(t, q, TestData{Content: fmt.Sprintf("%d", i)})
 	}
 
 	var err error
@@ -221,8 +174,7 @@ func TestQueue_TasksConsumedInInsertOrder(t *testing.T) {
 
 	taskCount := 30
 	for i := 0; i < taskCount; i++ {
-		_, err := q.AddTask(TestData{Content: fmt.Sprintf("%d", i)})
-		assert.NoError(t, err)
+		addTask(t, q, TestData{Content: fmt.Sprintf("%d", i)})
 	}
 
 	for i := 0; i < taskCount; i++ {
@@ -238,10 +190,9 @@ func TestQueue_CancelNotYetStartedTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	taskID, err := q.AddTask(TestData{Content: "Hello"})
-	assert.NoError(t, err)
+	taskID := addTask(t, q, TestData{Content: "Hello"})
 
-	err = q.CancelTask(taskID)
+	err := q.CancelTask(taskID)
 	assert.NoError(t, err)
 
 	tt, err := q.ListLiveTasks()
@@ -259,8 +210,7 @@ func TestQueue_CancelProcessingTaskClaimedByScan(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	taskID, err := q.AddTask(TestData{Content: "Hello"})
-	assert.NoError(t, err)
+	taskID := addTask(t, q, TestData{Content: "Hello"})
 
 	task, err := q.ClaimNextTask(context.Background())
 	assert.NoError(t, err)
@@ -319,10 +269,9 @@ func TestQueue_CancelProcessingTaskClaimedByWatch(t *testing.T) {
 	}()
 	<-coordinationChan
 	time.Sleep(100 * time.Millisecond)
-	taskID, err := q.AddTask(testData)
-	assert.NoError(t, err)
+	taskID := addTask(t, q, testData)
 	time.Sleep(100 * time.Millisecond)
-	err = q.CancelTask(taskID)
+	err := q.CancelTask(taskID)
 	assert.NoError(t, err)
 	<-coordinationChan
 
@@ -339,8 +288,7 @@ func TestQueue_CannotFinishTasksThatAreNotClaimedByClient(t *testing.T) {
 	q2, shutdownFn2 := newTestQueue(t)
 	defer shutdownFn2()
 
-	_, err := q1.AddTask(TestData{Content: "HelloQ1"})
-	assert.NoError(t, err)
+	addTask(t, q1, TestData{Content: "HelloQ1"})
 
 	task, err := q1.ClaimNextTask(context.Background())
 	assert.NoError(t, err)
@@ -358,8 +306,7 @@ func TestQueue_TaskWithNoLockCanBeReclaimed(t *testing.T) {
 	// Change from default 60 s to avoid that the test hangs for a minute
 	q.SetRepollInterval(10 * time.Millisecond)
 
-	_, err := q.AddTask(TestData{Content: "HelloQ1"})
-	assert.NoError(t, err)
+	addTask(t, q, TestData{Content: "HelloQ1"})
 
 	task1, err := q.ClaimNextTask(context.Background())
 	assert.NoError(t, err)
@@ -391,8 +338,7 @@ func TestReQueueingFinishedTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	_, err := q.AddTask(TestData{Content: "Hello"})
-	assert.NoError(t, err)
+	addTask(t, q, TestData{Content: "Hello"})
 
 	task, err := q.ClaimNextTask(context.Background())
 	assert.NoError(t, err)
@@ -441,8 +387,7 @@ func TestQueue_CancelBeforeClaimNextTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	_, err := q.AddTask(TestData{Content: "Hello"})
-	assert.NoError(t, err)
+	addTask(t, q, TestData{Content: "Hello"})
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	cancelFunc()
@@ -458,8 +403,7 @@ func TestQueue_GetLiveTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	id, err := q.AddTask(TestData{Content: "Hello"})
-	assert.NoError(t, err)
+	id := addTask(t, q, TestData{Content: "Hello"})
 
 	task, err := q.GetTask(id)
 	assert.NoError(t, err)
@@ -470,8 +414,7 @@ func TestQueue_GetFinishedTask(t *testing.T) {
 	q, shutdownFn := newTestQueue(t)
 	defer shutdownFn()
 
-	id, err := q.AddTask(TestData{Content: "Hello"})
-	assert.NoError(t, err)
+	id := addTask(t, q, TestData{Content: "Hello"})
 
 	claimedTask, err := q.ClaimNextTask(context.Background())
 	assert.NoError(t, err)
@@ -498,8 +441,7 @@ func TestQueue_CancelFinishedTaskReturnsTaskNotFound(t *testing.T) {
 	defer shutdownFn()
 
 	data := TestData{Content: "Task to be finished"}
-	taskID, err := q.AddTask(data)
-	assert.NoError(t, err)
+	taskID := addTask(t, q, data)
 
 	claimedTask, err := q.ClaimNextTask(context.Background())
 	assert.NoError(t, err)

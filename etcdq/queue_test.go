@@ -28,8 +28,7 @@ func TestQueue_BasicInsertGetFinishScenario(t *testing.T) {
 	assert.Equal(t, tasks.TaskStatusQueued, tt[0].Status)
 	assert.NotEmpty(t, tt[0].CreatedTS)
 
-	claimedTask, err := q.ClaimNextTask(context.Background())
-	assert.NoError(t, err)
+	claimedTask := claimNextTask(t, q)
 	assert.Equal(t, testData, claimedTask.Data)
 	assert.Equal(t, newTaskID, claimedTask.ID)
 
@@ -62,8 +61,7 @@ func TestQueue_TasksPutOnQueueAfterConsumerStarted(t *testing.T) {
 	coordinationChan := make(chan bool)
 	go func() {
 		coordinationChan <- true
-		task, err := q.ClaimNextTask(context.Background())
-		assert.NoError(t, err)
+		task := claimNextTask(t, q)
 		assert.Equal(t, testData, task.Data)
 		close(coordinationChan)
 	}()
@@ -112,7 +110,7 @@ func TestQueue_MultipleConsumersAndProducers(t *testing.T) {
 	// 10 consumers of input + 10 producers of output
 	for i := 0; i < consumerCount; i++ {
 		go func(id int) {
-			task, err := inputQueueInstances[id].ClaimNextTask(context.Background())
+			task := claimNextTask(t, inputQueueInstances[id])
 			assert.NoError(t, err)
 
 			task.Data.Content = fmt.Sprintf("%d - %s", id, task.Data.Content)
@@ -135,8 +133,7 @@ func TestQueue_MultipleConsumersAndProducers(t *testing.T) {
 	outputSet := make(map[string]struct{})
 	re := regexp.MustCompile(`\d - \d`)
 	for i := 0; i < consumerCount; i++ {
-		task, err := outputQueueInstances[0].ClaimNextTask(context.Background())
-		assert.NoError(t, err)
+		task := claimNextTask(t, outputQueueInstances[0])
 		assert.Regexp(t, re, task.Data.Content)
 		err = outputQueueInstances[0].FinishTask(task, tasks.TaskStatusSuccess)
 		assert.NoError(t, err)
@@ -178,10 +175,9 @@ func TestQueue_TasksConsumedInInsertOrder(t *testing.T) {
 	}
 
 	for i := 0; i < taskCount; i++ {
-		task, err := q.ClaimNextTask(context.Background())
-		assert.NoError(t, err)
+		task := claimNextTask(t, q)
 		assert.Equal(t, TestData{Content: fmt.Sprintf("%d", i)}, task.Data)
-		err = q.FinishTask(task, tasks.TaskStatusSuccess)
+		err := q.FinishTask(task, tasks.TaskStatusSuccess)
 		assert.NoError(t, err)
 	}
 }
@@ -212,10 +208,9 @@ func TestQueue_CancelProcessingTaskClaimedByScan(t *testing.T) {
 
 	taskID := addTask(t, q, TestData{Content: "Hello"})
 
-	task, err := q.ClaimNextTask(context.Background())
-	assert.NoError(t, err)
+	task := claimNextTask(t, q)
 
-	err = q.CancelTask(taskID)
+	err := q.CancelTask(taskID)
 	assert.NoError(t, err)
 
 	var cancelled bool
@@ -255,12 +250,11 @@ func TestQueue_CancelProcessingTaskClaimedByWatch(t *testing.T) {
 	coordinationChan := make(chan bool)
 	go func() {
 		coordinationChan <- true
-		task, err := q.ClaimNextTask(context.Background())
-		assert.NoError(t, err)
+		task := claimNextTask(t, q)
 		assert.Equal(t, testData, task.Data)
 		select {
 		case <-task.CancelChannel:
-			err = q.FinishTask(task, tasks.TaskStatusCancelled)
+			err := q.FinishTask(task, tasks.TaskStatusCancelled)
 			assert.NoError(t, err)
 		case <-time.After(5 * time.Second):
 			t.Error("Timed out waiting for task cancel")
@@ -290,11 +284,10 @@ func TestQueue_CannotFinishTasksThatAreNotClaimedByClient(t *testing.T) {
 
 	addTask(t, q1, TestData{Content: "HelloQ1"})
 
-	task, err := q1.ClaimNextTask(context.Background())
-	assert.NoError(t, err)
+	task := claimNextTask(t, q1)
 	assert.Equal(t, "HelloQ1", task.Data.Content)
 
-	err = q2.FinishTask(task, tasks.TaskStatusSuccess)
+	err := q2.FinishTask(task, tasks.TaskStatusSuccess)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not owned by us")
 }
@@ -308,14 +301,11 @@ func TestQueue_TaskWithNoLockCanBeReclaimed(t *testing.T) {
 
 	addTask(t, q, TestData{Content: "HelloQ1"})
 
-	task1, err := q.ClaimNextTask(context.Background())
-	assert.NoError(t, err)
-
+	task1 := claimNextTask(t, q)
 	coordinationChan := make(chan bool)
 	go func() {
 		coordinationChan <- true
-		task2, err := q.ClaimNextTask(context.Background())
-		assert.NoError(t, err)
+		task2 := claimNextTask(t, q)
 		assert.Equal(t, task1.ID, task2.ID)
 		close(coordinationChan)
 	}()
@@ -340,16 +330,15 @@ func TestReQueueingFinishedTask(t *testing.T) {
 
 	addTask(t, q, TestData{Content: "Hello"})
 
-	task, err := q.ClaimNextTask(context.Background())
+	claimed := claimNextTask(t, q)
+
+	err := q.FinishTask(claimed, tasks.TaskStatusErrored)
 	assert.NoError(t, err)
 
-	err = q.FinishTask(task, tasks.TaskStatusErrored)
+	newTask, err := q.ReQueueTask(claimed.ID)
 	assert.NoError(t, err)
-
-	newTask, err := q.ReQueueTask(task.ID)
-	assert.NoError(t, err)
-	assert.NotEqual(t, task.ID, newTask.ID)
-	assert.Equal(t, task.Data, newTask.Data)
+	assert.NotEqual(t, claimed.ID, newTask.ID)
+	assert.Equal(t, claimed.Data, newTask.Data)
 
 	tt, err := q.ListLiveTasks()
 	assert.NoError(t, err)
@@ -359,8 +348,7 @@ func TestReQueueingFinishedTask(t *testing.T) {
 	assert.Equal(t, "", tt[0].StartedTS)
 	assert.Equal(t, "", tt[0].FinishedTS)
 
-	claimedTask, err := q.ClaimNextTask(context.Background())
-	assert.NoError(t, err)
+	claimedTask := claimNextTask(t, q)
 	assert.Equal(t, newTask.ID, claimedTask.ID)
 }
 
@@ -416,10 +404,9 @@ func TestQueue_GetFinishedTask(t *testing.T) {
 
 	id := addTask(t, q, TestData{Content: "Hello"})
 
-	claimedTask, err := q.ClaimNextTask(context.Background())
-	assert.NoError(t, err)
+	claimedTask := claimNextTask(t, q)
 
-	err = q.FinishTask(claimedTask, tasks.TaskStatusErrored)
+	err := q.FinishTask(claimedTask, tasks.TaskStatusErrored)
 	assert.NoError(t, err)
 
 	task, err := q.GetTask(id)
@@ -443,9 +430,8 @@ func TestQueue_CancelFinishedTaskReturnsTaskNotFound(t *testing.T) {
 	data := TestData{Content: "Task to be finished"}
 	taskID := addTask(t, q, data)
 
-	claimedTask, err := q.ClaimNextTask(context.Background())
-	assert.NoError(t, err)
-	err = q.FinishTask(claimedTask, tasks.TaskStatusSuccess)
+	claimedTask := claimNextTask(t, q)
+	err := q.FinishTask(claimedTask, tasks.TaskStatusSuccess)
 	assert.NoError(t, err)
 
 	err = q.CancelTask(taskID)

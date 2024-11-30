@@ -1,6 +1,7 @@
 package etcdq_test
 
 import (
+	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/tobgu/worqu/etcdq"
@@ -54,4 +55,10 @@ func addTask(t *testing.T, q *etcdq.Queue[TestData], testData TestData) tasks.Ta
 	newTaskID, err := q.AddTask(testData)
 	assert.NoError(t, err)
 	return newTaskID
+}
+
+func claimNextTask(t *testing.T, q *etcdq.Queue[TestData]) *tasks.ClaimedTask[TestData] {
+	claimedTask, err := q.ClaimNextTask(context.Background())
+	assert.NoError(t, err)
+	return claimedTask
 }

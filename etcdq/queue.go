@@ -20,16 +20,16 @@ func nowTimeStamp() string {
 // Queue is a task queue using ETCD as a backing store.
 //
 // Layout in ETCD:
-// /workqu/task-queues/<queue name>/live-tasks/<task id>
+// /worqu/task-queues/<queue name>/live-tasks/<task id>
 // - Tasks queued, and currently processing. Picked up in order of creation.
 //
-// /workqu/task-queues/<queue name>/processing-locks/<task id>
+// /worqu/task-queues/<queue name>/processing-locks/<task id>
 // - Locks for in progress tasks e.g. key -> ETCD Lease ID. Expires after a TTL if holding process dies unexpectedly.
 //
-// /workqu/task-queues/<queue name>/finished-tasks/<task id>
+// /worqu/task-queues/<queue name>/finished-tasks/<task id>
 // - Tasks finished, either successfully, with errors, or cancelled.
 //
-// /workqu/task-queues/<queue name>/cancel-requests/<task id>
+// /worqu/task-queues/<queue name>/cancel-requests/<task id>
 // - Processing tasks for which cancelling has been requested but not yet completed.
 type Queue[T any] struct {
 	name               string

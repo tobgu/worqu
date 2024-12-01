@@ -47,7 +47,7 @@ type Queue[T any] struct {
 // The name argument denotes that name of the queue in ETCD and must be the
 // same for producers and consumers of tasks that wish to interact.
 func NewQueue[T any](name string, c Config, logger log.Logger) (*Queue[T], error) {
-	client, err := NewClient(c)
+	client, err := newClient(c)
 	if err != nil {
 		return nil, err
 	}

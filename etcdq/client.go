@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func NewClient(c Config) (*clientv3.Client, error) {
+func newClient(c Config) (*clientv3.Client, error) {
 	var clientCerts []tls.Certificate
 	if c.TLSKeyFile != "" && c.TLSCertFile != "" {
 		// Load client cert

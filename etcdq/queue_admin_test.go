@@ -1,7 +1,6 @@
 package etcdq_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,8 +23,7 @@ func TestQueueAdmin_CancelTask(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify task was canceled
-	tt, err := q.ListFinishedTasks(10)
-	assert.NoError(t, err)
+	tt := listFinishedTasks(t, q, 10)
 	assert.Len(t, tt, 1)
 	assert.Equal(t, tasks.TaskStatusCancelled, tt[0].Status)
 	assert.Equal(t, taskID, tt[0].ID)
@@ -39,10 +37,8 @@ func TestQueueAdmin_ListFinishedTasks(t *testing.T) {
 	taskID := addTask(t, q, TestData{Content: "TestListFinishedTask"})
 
 	// Finish task to mark it as finished
-	task, err := q.ClaimNextTask(context.Background())
-	assert.NoError(t, err)
-	err = q.FinishTask(task, tasks.TaskStatusSuccess)
-	assert.NoError(t, err)
+	task := claimNextTask(t, q)
+	finishTask(t, q, task, tasks.TaskStatusSuccess)
 
 	finishedTasks, err := qa.ListFinishedTasks("test-queue")
 	assert.NoError(t, err)
@@ -73,10 +69,8 @@ func TestQueueAdmin_ReQueueTask(t *testing.T) {
 	taskID := addTask(t, q, TestData{Content: "TestReQueueTask"})
 
 	// Finish task to mark it as errored
-	task, err := q.ClaimNextTask(context.Background())
-	assert.NoError(t, err)
-	err = q.FinishTask(task, tasks.TaskStatusErrored)
-	assert.NoError(t, err)
+	task := claimNextTask(t, q)
+	finishTask(t, q, task, tasks.TaskStatusErrored)
 
 	newTaskID, err := qa.ReQueueTask("test-queue", taskID)
 	assert.NoError(t, err)
